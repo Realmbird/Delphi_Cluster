@@ -14,6 +14,7 @@ from collections import defaultdict
 from safetensors import safe_open
 import math
 from huggingface_hub import login
+from tqdm import tqdm
 
 # math functions to in code and decode features from attribute mlp
 def cantor(num1, num2):
@@ -58,7 +59,7 @@ def collect_attribution_graph_delphi(dataset: LatentDataset, attribution_feature
             "locations": latent_locations,
           }
   return node_data
-def sparse_matrix(nodedata):
+def sparse_mat(nodedata):
   cantor_ids = list(nodedata.keys())
   cantor_to_idx = {cid: idx for idx, cid in enumerate(cantor_ids)}
   n_features = len(cantor_ids)
@@ -123,7 +124,7 @@ def main():
 
   with open(GRAPH_PATH, "r") as f:
     graph_data = json.load(f)
-  if (args.debugg):
+  if (args.debug):
     print(f"Prompt: {graph_data['metadata']['prompt']}")
     print(f"Total nodes: {len(graph_data['nodes'])}")
   attribution_features = get_attribution_features(GRAPH_PATH)
@@ -149,7 +150,7 @@ def main():
   )
 
   nodedata = collect_attribution_graph_delphi(dataset, attribution_features)
-  sparse_matrix = sparse_matrix(nodedata) # makes sparse_matrixs from list of features and the positions dict
+  sparse_matrix = sparse_mat(nodedata) # makes sparse_matrixs from list of features and the positions dict
 
   co_occurrence_matrix = (sparse_matrix @ sparse_matrix.T).to_dense()
   jaccard = compute_jaccard(co_occurrence_matrix)
@@ -163,11 +164,8 @@ def main():
             i: list(zip(top_k_indices[i].tolist()[1:], values[i].tolist()[1:]))
             for i in range(len(top_k_indices))
         }
-  if (args.debugg):
+  if (args.debug):
     print(neighbours_list)
-
-
-  
 
 if __name__ == "__main__":
     main()
