@@ -62,6 +62,7 @@ def collect_attribution_graph_delphi(dataset: LatentDataset, attribution_feature
 def sparse_mat(nodedata):
   cantor_ids = list(nodedata.keys())
   cantor_to_idx = {cid: idx for idx, cid in enumerate(cantor_ids)}
+  idx_to_cantor = {idx: cid for idx, cid in enumerate(cantor_ids)}
   n_features = len(cantor_ids)
   all_feature_indices = []
   all_position_indices = []
@@ -93,7 +94,7 @@ def sparse_mat(nodedata):
       torch.ones(len(feature_indices)),
       (n_features, len(unique_positions))
   )
-  return sparse_matrix
+  return sparse_matrix, idx_to_cantor, cantor_to_idx
 # from delphi
 def compute_jaccard(cooc_matrix):
         self_occurrence = cooc_matrix.diagonal()
@@ -150,22 +151,34 @@ def main():
   )
 
   nodedata = collect_attribution_graph_delphi(dataset, attribution_features)
-  sparse_matrix = sparse_mat(nodedata) # makes sparse_matrixs from list of features and the positions dict
-
+  sparse_matrix, idx_to_c, c_to_idx = sparse_mat(nodedata) # makes sparse_matrixs from list of features and the positions dict
+  if (args.debug):
+    print("sparse_matrix done")
   co_occurrence_matrix = (sparse_matrix @ sparse_matrix.T).to_dense()
   jaccard = compute_jaccard(co_occurrence_matrix)
-
+  if (args.debug):
+    print("coocurrence matrix and jaccard done")
   # top k for each feature
-  top_k_indices, values = torch.topk(
+  top_k_values, top_k_indices = torch.topk(
           jaccard, args.number_of_neighbours + 1, dim=1
       )
 
   neighbours_list = {
-            i: list(zip(top_k_indices[i].tolist()[1:], values[i].tolist()[1:]))
-            for i in range(len(top_k_indices))
-        }
+    idx_to_c[i]: [
+        (idx_to_c[neighbor_idx], similarity) 
+        for neighbor_idx, similarity in zip(
+            top_k_indices[i].tolist()[1:],  # Skip first (self)
+            top_k_values[i].tolist()[1:]     # Skip first (self)
+        )
+    ]
+    for i in range(len(top_k_indices))
+  }
   if (args.debug):
-    print(neighbours_list)
+    print("First 5 neighbours")
+
+    test = list(neighbours_list.keys())[:5]
+    for t in test:
+      print(neighbours_list[t])
 
 if __name__ == "__main__":
     main()
