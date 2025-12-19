@@ -15,6 +15,7 @@ from safetensors import safe_open
 import math
 from huggingface_hub import login
 from tqdm import tqdm
+import json
 
 # math functions to in code and decode features from attribute mlp
 def cantor(num1, num2):
@@ -104,6 +105,7 @@ def compute_jaccard(cooc_matrix):
         # remove the diagonal and keep the upper triangle
         return jaccard_matrix
 
+
 def main():
   # model_name = "meta-llama/Meta-Llama-3-70B-Instruct"
   GRAPH_PATH = "/mnt/ssd-1/soar-automated_interpretability/graphs/pawan/circuit-grouping/data/bees/attribution_graph/graph_data/bees.json"
@@ -118,6 +120,7 @@ def main():
   parser.add_argument("--huggingface_token", type=str, required=True, help="Huggingface token for latentdataset")
   parser.add_argument("--debug", default=False, required=False, help="Debugging shows prints")
   parser.add_argument("--number_of_neighbours", type=int, default = 10, required=False, help="Number of neighbours")
+  parser.add_argument("--save", default=False, required=False, help="Save as JSON")
   args = parser.parse_args()
 
   #logins into huggingface
@@ -179,6 +182,9 @@ def main():
     test = list(neighbours_list.keys())[:5]
     for t in test:
       print(neighbours_list[t])
+  if(args.save):
+    with open("neighbors_dict.json", "w") as f:
+      json.dump(neighbours_list, f)
 
 if __name__ == "__main__":
     main()
